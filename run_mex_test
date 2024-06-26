@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# run_mex_test - Run a test on the built mexIPOPT MEX file.
+#
+#   run_mex_test [-o <oct_variant>] [-e <example>]
+#
+# -o | --octave <oct_variant> determines which Octave to run it under. May be:
+#   'o'       - whatever octave is on the path
+#   'hb'      - "system" Homebrewed octave
+#   'oa-91b1' - Octave.app 9.1.0 beta1
+#   'oa-91b2' - Octave.app 9.1.0 beta2
+#   'oa-91b3' - Octave.app 9.1.0 beta3
+#
+# -e | --example <example> is the mexIPOPT example function to run. Defaults to
+# 'examplehs071'. May be any *.m file in the mexIPOPT examples directory.
+
+# Boilerplate
+
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+
+THIS_PROGRAM=$(basename $0)
+THIS_DIR=$(realpath $(dirname $0))
+
+function info() { echo >&2 "$*"; }
+function error() { echo >&2 "${THIS_PROGRAM}: ERROR: $*"; }
+function die() { local msg="$1"; error "$msg"; exit 1; }
+
+# Script logic
+
+OCTAVE_VARIANT='o'
+EXAMPLE_FCN='examplehs071'
+
+function parse_cli_args() {
+  local arg
+  while [[ $# -ge 1 ]]; do
+    arg="$1"; shift
+    case "$arg" in
+      -o | --octave)   OCTAVE_VARIANT="$1"; shift ;;
+      -e | --example)  EXAMPLE_FCN="$1"; shift ;;
+      *)
+        die "invalid option: ${arg}. See ${THIS_PROGRAM} --help for help." ;;
+    esac
+  done
+}
+
+parse_cli_args "$@"
+
+# Pick the octave
+
+case "$OCTAVE_VARIANT" in
+  o)        OCTAVE='octave' ;;
+  hb)       OCTAVE="$(brew --prefix octave)/bin/octave" ;;
+  oa-91b1)  OCTAVE='/Applications/Octave-9.1.0_beta1.app/Contents/Resources/usr/bin/octave-octapp-qt5@9.1.0' ;;
+  oa-91b2)  OCTAVE='/Applications/Octave-9.1.0_beta2.app/Contents/Resources/usr/bin/octave-octapp-qt5@9.1.0' ;;
+  oa-91b3)  OCTAVE='/Applications/Octave-9.1.0_beta3.app/Contents/Resources/usr/bin/octave-octapp-qt5@9.1.0' ;;
+  *) die "Invalid -o (octave variant) option: '$OCTAVE_VAR'" ;;
+esac
+OCTAVE_LOCN="$OCTAVE"
+if [[ "$OCTAVE" == 'octave' ]]; then
+  OCTAVE_LOCN=$(which "$OCTAVE")
+fi
+
+# Run test
+
+info "Running mexIPOPT test under Octave: ${OCTAVE_LOCN}"
+
+MEXIPOPT_DIR="${THIS_DIR}/repos/mexIPOPT"
+cd "${MEXIPOPT_DIR}/toolbox"
+"$OCTAVE" --no-gui --eval "addpath('./bin'); addpath('./examples'); ${EXAMPLE_FCN}"

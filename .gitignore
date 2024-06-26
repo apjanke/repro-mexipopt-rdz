@@ -1,3 +1,14 @@
+# Repo-specific stuff
+
+repos/
+ipopts/coinbrew
+ipopts/build/
+ipopts/Ipopt/
+ipopts/ThirdParty/
+ipopts/opt/
+
+# Generic stuff
+
 # Prerequisites
 *.d
 
@@ -30,3 +41,4 @@
 *.exe
 *.out
 *.app
+

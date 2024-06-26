@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#
+# build_ipopt - do a custom build of ipopt in rdzman's style
+#
+#   build_ipopt <style>
+#
+# <style> may be: 'rdz' (default)
+
+# Boilerplate
+
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+
+THIS_PROGRAM=$(basename $0)
+THIS_DIR=$(realpath $(dirname $0))
+
+function info() { echo >&2 "$*"; }
+function error() { echo >&2 "${THIS_PROGRAM}: ERROR: $*"; }
+function die() { local msg="$1"; error "$msg"; exit 1; }
+
+# Script logic
+
+STYLE=''
+DEFAULT_STYLE='rdz'
+
+function parse_cli_args() {
+  local arg
+  while [[ $# -ge 1 ]]; do
+    arg="$1"; shift
+    case "$arg" in
+      *)
+        if [[ -z "$STYLE" ]]; then
+          STYLE="$arg"
+        else
+          die "invalid option: ${arg}. See ${THIS_PROGRAM} --help for help."
+        fi ;;
+    esac
+  done
+
+  if [[ -z "$STYLE" ]]; then
+    STYLE="$DEFAULT_STYLE"
+  fi
+}
+
+parse_cli_args "$@"
+
+# Build logic
+
+case "$STYLE" in
+  rdz)
+    BREW_PREFIX=$(brew --prefix)
+    export METIS_VER=$(ls ${BREW_PREFIX}/Cellar/metis)
+    export with_metis_cflags="-I${BREW_PREFIX}/Cellar/metis/${METIS_VER}/include"
+    export with_metis_lflags="-L${BREW_PREFIX}/Cellar/metis/${METIS_VER}/lib -lmetis"
+    export FC="${BREW_PREFIX}/bin/gfortran"
+    ./coinbrew build Ipopt --prefix "${THIS_DIR}/opt/ipopt-${STYLE}"
+    ;;
+  *)
+    die "invalid style: ${STYLE}" ;;
+esac
+
+info "Finished building ipopt for style '${STYLE}'"

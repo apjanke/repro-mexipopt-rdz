@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# Download coinbrew into this directory.
+#
+# This file just exists to avoid checking coinbrew itself into this repo and worrying
+# about licensing.
+
+# Boilerplate
+
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+
+# Script logic
+
+rm -f coinbrew
+wget https://raw.githubusercontent.com/coin-or/coinbrew/v2.0/coinbrew
+chmod a+x coinbrew
+echo "Downloaded coinbrew"

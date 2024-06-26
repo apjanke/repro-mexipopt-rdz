@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#
+# build_mexipopt - do a custom build of mexipopt in rdzman's style
+#
+#   build_mexipopt [-s <style>]
+#
+# <style> determines which variant of our ipopt builds to use. May be: 'rdz' (default).
+
+# Boilerplate
+
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+
+THIS_PROGRAM=$(basename $0)
+THIS_DIR=$(realpath $(dirname $0))
+
+function info() { echo >&2 "$*"; }
+function error() { echo >&2 "${THIS_PROGRAM}: ERROR: $*"; }
+function die() { local msg="$1"; error "$msg"; exit 1; }
+
+# Script logic
+
+IPOPT_STYLE='rdz'
+OCTAVE='octave'
+
+function parse_cli_args() {
+  local arg
+  while [[ $# -ge 1 ]]; do
+    arg="$1"; shift
+    case "$arg" in
+      -s | --style)  IPOPT_STYLE="$1"; shift ;;
+      *)
+        die "invalid option: ${arg}. See ${THIS_PROGRAM} --help for help." ;;
+    esac
+  done
+}
+
+parse_cli_args "$@"
+
+MEXIPOPT_DIR="${THIS_DIR}/repos/mexIPOPT"
+IPOPTS_DIR="${THIS_DIR}/ipopts"
+IPOPT_HOME="${IPOPTS_DIR}/ipopts/opt/ipopt-${IPOPT_STYLE}"
+
+export PKG_CONFIG_PATH="${IPOPT_HOME}/lib/pkgconfig"
+cd "${MEXIPOPT_DIR}/toolbox"
+mkdir -p bin
+"$OCTAVE" --no-gui --eval "CompileIpoptMexLib"
+cp bin/ipopt_oct.mex bin/ipopt.mex
