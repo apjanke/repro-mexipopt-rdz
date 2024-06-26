@@ -27,6 +27,7 @@ THIS_DIR=$(realpath $(dirname $0))
 function info() { echo >&2 "$*"; }
 function error() { echo >&2 "${THIS_PROGRAM}: ERROR: $*"; }
 function die() { local msg="$1"; error "$msg"; exit 1; }
+function doit() { echo >&2 "Running: $*"; "$@"; }
 
 # Script logic
 
@@ -69,4 +70,4 @@ info "Running mexIPOPT test under Octave: ${OCTAVE_LOCN}"
 
 MEXIPOPT_DIR="${THIS_DIR}/repos/mexIPOPT"
 cd "${MEXIPOPT_DIR}/toolbox"
-"$OCTAVE" --no-gui --eval "addpath('./bin'); addpath('./examples'); ${EXAMPLE_FCN}"
+doit "$OCTAVE" --no-gui --eval "addpath('./bin'); addpath('./examples'); ${EXAMPLE_FCN}"
