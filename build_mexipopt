@@ -41,10 +41,19 @@ parse_cli_args "$@"
 
 MEXIPOPT_DIR="${THIS_DIR}/repos/mexIPOPT"
 IPOPTS_DIR="${THIS_DIR}/ipopts"
-IPOPT_HOME="${IPOPTS_DIR}/ipopts/opt/ipopt-${IPOPT_STYLE}"
+IPOPT_HOME="${IPOPTS_DIR}/opt/ipopt-${IPOPT_STYLE}"
 
 export PKG_CONFIG_PATH="${IPOPT_HOME}/lib/pkgconfig"
+info "PKG_CONFIG_PATH = ${PKG_CONFIG_PATH}"
 cd "${MEXIPOPT_DIR}/toolbox"
 mkdir -p bin
+rm -rf bin/*
 "$OCTAVE" --no-gui --eval "CompileIpoptMexLib"
 cp bin/ipopt_oct.mex bin/ipopt.mex
+
+MEX_FILE="bin/ipopt.mex"
+echo ''
+echo "Built MEX file: ${MEX_FILE}"
+echo ''
+echo "MEX file linkage (per otool -L):"
+otool -L "$MEX_FILE"
