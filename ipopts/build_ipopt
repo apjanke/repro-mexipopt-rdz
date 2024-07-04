@@ -24,12 +24,14 @@ function die() { local msg="$1"; error "$msg"; exit 1; }
 
 STYLE=''
 DEFAULT_STYLE='rdz'
+ACTION='build'
 
 function parse_cli_args() {
   local arg
   while [[ $# -ge 1 ]]; do
     arg="$1"; shift
     case "$arg" in
+      --clean)   ACTION='clean' ;;
       *)
         if [[ -z "$STYLE" ]]; then
           STYLE="$arg"
@@ -44,21 +46,60 @@ function parse_cli_args() {
   fi
 }
 
-parse_cli_args "$@"
-
 # Build logic
 
-case "$STYLE" in
-  rdz)
-    BREW_PREFIX=$(brew --prefix)
-    export METIS_VER=$(ls ${BREW_PREFIX}/Cellar/metis)
-    export with_metis_cflags="-I${BREW_PREFIX}/Cellar/metis/${METIS_VER}/include"
-    export with_metis_lflags="-L${BREW_PREFIX}/Cellar/metis/${METIS_VER}/lib -lmetis"
-    export FC="${BREW_PREFIX}/bin/gfortran"
-    ./coinbrew build Ipopt --prefix "${THIS_DIR}/opt/ipopt-${STYLE}"
-    ;;
-  *)
-    die "invalid style: ${STYLE}" ;;
-esac
+function build_against_octapp() {
+  OA_APP_DIR="/Applications/Octave-${OCTAPP_VER}.app"
+  OA_USR="${OA_APP_DIR}/Contents/Resources/usr"
+  OA_CELLAR="${OA_USR}/Cellar"
+  export METIS_VER=$(ls "${OA_CELLAR}/metis")
+  export with_metis_cflags="-I${OA_CELLAR}/metis/${METIS_VER}/include"
+  export with_metis_lflags="-L${OA_CELLAR}/metis/${METIS_VER}/lib -lmetis"
+  export FC="${OA_USR}/bin/gfortran"
+  ./coinbrew build Ipopt --prefix "${THIS_DIR}/opt/ipopt-${STYLE}"
+}
 
-info "Finished building ipopt for style '${STYLE}'"
+function build_ipopt() {
+  # Remove leftover intermediate build artifacts which may have been from a different
+  # build style
+  rm -rf build
+  # Do build
+  case "$STYLE" in
+    rdz)
+      BREW_PREFIX=$(brew --prefix)
+      export METIS_VER=$(ls ${BREW_PREFIX}/Cellar/metis)
+      export with_metis_cflags="-I${BREW_PREFIX}/Cellar/metis/${METIS_VER}/include"
+      export with_metis_lflags="-L${BREW_PREFIX}/Cellar/metis/${METIS_VER}/lib -lmetis"
+      export FC="${BREW_PREFIX}/bin/gfortran"
+      ./coinbrew build Ipopt --prefix "${THIS_DIR}/opt/ipopt-${STYLE}"
+      ;;
+    rdz-oa91b4)
+      OCTAPP_VER=9.1.0_beta4
+      build_against_octapp
+      ;;
+    rdz-oa92b1)
+      OCTAPP_VER=9.2.0_beta1
+      build_against_octapp
+      ;;
+    *)
+      die "invalid style: ${STYLE}" ;;
+  esac
+
+  info "Finished building ipopt for style '${STYLE}'"
+}
+
+function clean_ipopt() {
+  (
+    cd "$THIS_DIR"
+    rm -rf build opt
+  )
+}
+
+# Main script
+
+parse_cli_args "$@"
+
+case "$ACTION" in
+  build)   build_ipopt ;;
+  clean)   clean_ipopt ;;
+esac
